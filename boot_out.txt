@@ -1,0 +1,4 @@
+Adafruit CircuitPython 9.2.1 on 2024-11-20; Adafruit ItsyBitsy M0 Express with samd21g18
+Board ID:itsybitsy_m0_express
+UID:7BCE6EA23633535020312E3705180CFF
+boot.py output:
