@@ -1,10 +1,9 @@
 import time
 import board
 import digitalio
+from core.comandos import COMANDOS
+from config import COMANDO_INICIO, TIMEOUT_COMANDOS
 
-CR_LF = f"\n\r"
-
-# Definir estados posibles
 ESTADO_INICIO = 0
 ESTADO_ESPERANDO_COMANDO = 1
 ESTADO_ESPERANDO_PARAMETROS = 2
@@ -17,78 +16,68 @@ class Command:
         self.led = digitalio.DigitalInOut(board.D13)
         self.led.direction = digitalio.Direction.OUTPUT
         self.inicio = 0
-        self.func = None
         self.func_code = None
         self.buffer_parametros = ""
-
-        self.comandos = {
-            "?": (self.mostrar_ayuda, 0),
-            "R": (self.iniciar_registro, 2),
-        }
-
-    def mostrar_ayuda(self):
-        self.serial.write(f"Comandos disponibles:{CR_LF}".encode())
-        self.serial.write(f"ESC ?{CR_LF}".encode())
-        self.serial.write(f"ESC R <num>,<total>{CR_LF}".encode())
-
-    def iniciar_registro(self, num, total):
-        for x in range(total):
-            self.serial.write(f"{num}: Registrando {x+1} de {total}{CR_LF}".encode())
-            time.sleep(0.5)
+        self.func = None
+        self.args_esperados = 0
 
     def espera_comando(self):
         if self.serial.in_waiting > 0:
             char = self.serial.read(1).decode()
-            self.procesar_char(char)
+            self.__procesar_char(char)
             if self.estado_actual != ESTADO_INICIO:
                 self.inicio = time.monotonic()
                 self.led.value = True
 
-        if time.monotonic() - self.inicio >= 1:
-            self.led.value = False
-            self.estado_actual = ESTADO_INICIO
-            self.buffer_parametros = ""
+        if time.monotonic() - self.inicio >= TIMEOUT_COMANDOS:
+            self.__finalizar_recepcion()
 
-    def procesar_char(self, char):
+    def __procesar_char(self, char):
         if self.estado_actual == ESTADO_INICIO:
-            if char == "\x1b":
+            if char == COMANDO_INICIO:
                 self.estado_actual = ESTADO_ESPERANDO_COMANDO
 
         elif self.estado_actual == ESTADO_ESPERANDO_COMANDO:
-            if char in self.comandos:
-                self.func, self.args_esperados = self.comandos[char]
+            if char in COMANDOS:
+                self.func, self.args_esperados = COMANDOS[char]
                 self.func_code = char
                 if self.args_esperados > 0:
                     self.buffer_parametros = ""
                     self.estado_actual = ESTADO_ESPERANDO_PARAMETROS
                 else:
                     self.estado_actual = ESTADO_ESPERANDO_ENTER
+            else:
+                self.estado_actual = ESTADO_ESPERANDO_ENTER
 
         elif self.estado_actual == ESTADO_ESPERANDO_PARAMETROS:
             if char == "\x0d":
                 parametros = [p.strip() for p in self.buffer_parametros.split(",") if p.strip() != ""]
 
                 if len(parametros) != self.args_esperados:
-                    self.serial.write(f"Error: Se esperaban {self.args_esperados} parámetros, pero se recibieron {len(parametros)}{CR_LF}".encode())
+                    self.serial.write(f"Error: Se esperaban {self.args_esperados} parámetros, pero se recibieron {len(parametros)}\n\r".encode())
                 else:
                     try:
                         parametros = [int(p) for p in parametros]
-                        self.func(*parametros)
+                        self.parametros_actuales = parametros
+                        if self.func is not None:
+                            self.func(self, self.serial, *parametros)
                     except ValueError:
-                        self.serial.write(f"{self.func_code}: Parámetros deben ser números enteros{CR_LF}".encode())
+                        self.serial.write(f"{self.func_code}: Parámetros deben ser números enteros\n\r".encode())
 
-                self.buffer_parametros = ""
-                self.estado_actual = ESTADO_INICIO
+                self.__finalizar_recepcion()
             else:
                 self.buffer_parametros += char
 
         elif self.estado_actual == ESTADO_ESPERANDO_ENTER:
             if char == "\x0d":
                 if self.func is not None:
-                    self.func()
-                    self.func = None
+                    self.func(self, self.serial)
+                self.__finalizar_recepcion()
 
-                self.estado_actual = ESTADO_INICIO
-                self.led.value = False
+    def __finalizar_recepcion(self):
+        self.estado_actual = ESTADO_INICIO
+        self.led.value = False
+        self.buffer_parametros = ""
+        self.func = None
 
 
