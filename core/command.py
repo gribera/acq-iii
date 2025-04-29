@@ -2,6 +2,7 @@ import time
 import board
 import digitalio
 from core.comandos import COMANDOS
+from config import COMANDO_INICIO, TIMEOUT_COMANDOS
 
 ESTADO_INICIO = 0
 ESTADO_ESPERANDO_COMANDO = 1
@@ -28,12 +29,12 @@ class Command:
                 self.inicio = time.monotonic()
                 self.led.value = True
 
-        if time.monotonic() - self.inicio >= 5:
+        if time.monotonic() - self.inicio >= TIMEOUT_COMANDOS:
             self.__finalizar_recepcion()
 
     def __procesar_char(self, char):
         if self.estado_actual == ESTADO_INICIO:
-            if char == "\x1b":
+            if char == COMANDO_INICIO:
                 self.estado_actual = ESTADO_ESPERANDO_COMANDO
 
         elif self.estado_actual == ESTADO_ESPERANDO_COMANDO:
