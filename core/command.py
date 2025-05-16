@@ -1,8 +1,9 @@
+import asyncio
 import time
 import board
 import digitalio
 from core.comandos import COMANDOS
-from config import COMANDO_INICIO, TIMEOUT_COMANDOS
+from config import COMANDO_INICIO, COMANDO_FIN, TIMEOUT_COMANDOS
 
 ESTADO_INICIO = 0
 ESTADO_ESPERANDO_COMANDO = 1
@@ -21,10 +22,10 @@ class Command:
         self.func = None
         self.args_esperados = 0
 
-    def espera_comando(self):
-        if self.serial.in_waiting > 0:
+    async def espera_comando(self):
+        while self.serial.in_waiting > 0:
             char = self.serial.read(1).decode()
-            self.__procesar_char(char)
+            await self.__procesar_char(char)
             if self.estado_actual != ESTADO_INICIO:
                 self.inicio = time.monotonic()
                 self.led.value = True
@@ -32,7 +33,7 @@ class Command:
         if time.monotonic() - self.inicio >= TIMEOUT_COMANDOS:
             self.__finalizar_recepcion()
 
-    def __procesar_char(self, char):
+    async def __procesar_char(self, char):
         if self.estado_actual == ESTADO_INICIO:
             if char == COMANDO_INICIO:
                 self.estado_actual = ESTADO_ESPERANDO_COMANDO
@@ -50,7 +51,7 @@ class Command:
                 self.estado_actual = ESTADO_ESPERANDO_ENTER
 
         elif self.estado_actual == ESTADO_ESPERANDO_PARAMETROS:
-            if char == "\x0d":
+            if char == COMANDO_FIN:
                 parametros = [p.strip() for p in self.buffer_parametros.split(",") if p.strip() != ""]
 
                 if len(parametros) != self.args_esperados:
@@ -59,8 +60,8 @@ class Command:
                     try:
                         parametros = [int(p) for p in parametros]
                         self.parametros_actuales = parametros
-                        if self.func is not None:
-                            self.func(self, self.serial, *parametros)
+                        if self.func:
+                            asyncio.create_task(self.func(self, self.serial, *parametros))
                     except ValueError:
                         self.serial.write(f"{self.func_code}: Parámetros deben ser números enteros\n\r".encode())
 
@@ -69,9 +70,9 @@ class Command:
                 self.buffer_parametros += char
 
         elif self.estado_actual == ESTADO_ESPERANDO_ENTER:
-            if char == "\x0d":
-                if self.func is not None:
-                    self.func(self, self.serial)
+            if char == COMANDO_FIN:
+                if self.func:
+                    asyncio.create_task(self.func(self, self.serial))
                 self.__finalizar_recepcion()
 
     def __finalizar_recepcion(self):
@@ -79,5 +80,3 @@ class Command:
         self.led.value = False
         self.buffer_parametros = ""
         self.func = None
-
-

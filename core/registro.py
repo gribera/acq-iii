@@ -1,10 +1,10 @@
-import time
+import asyncio
 
 class Registro:
     def __init__(self, serial):
         self.serial = serial
 
-    def iniciar_registro(self, num, total):
+    async def iniciar_registro(self, num, total):
         for x in range(total):
-            self.serial.write(f"{num}: Registrando {x+1} de {total}\n\r".encode())
-            time.sleep(0.5)
+            self.serial.write(f"{num}: Registrando {x+1}/{total}\n\r".encode())
+            await asyncio.sleep(0.5)

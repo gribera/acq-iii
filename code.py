@@ -1,12 +1,13 @@
-import time
-import usb_cdc # type: ignore
+import asyncio
+import usb_cdc  # type: ignore
 from core.command import Command
 
-# Configuración del puerto serial
 serial = usb_cdc.console
-
 command = Command(serial)
 
-while True:
-    command.espera_comando()
-    time.sleep(0.1)
+async def main_loop():
+    while True:
+        await command.espera_comando()
+        await asyncio.sleep(0.01)
+
+asyncio.run(main_loop())
