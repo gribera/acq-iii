@@ -10,7 +10,7 @@ class M90:
         self.cs.value = True
         self.logging = False
 
-    async def start_logging(self, filename="/VoltagePrueba.txt", interval=1.0):
+    async def start_logging(self, filename="/VoltajePrueba.txt", interval=1.0):
         self.logging = True
         with open(filename, "a") as fp:
             while self.logging:

@@ -3,7 +3,7 @@ import time
 import board
 import digitalio
 from core.comandos import COMANDOS
-from config import COMANDO_INICIO, TIMEOUT_COMANDOS
+from config import COMANDO_INICIO, COMANDO_FIN, TIMEOUT_COMANDOS
 
 ESTADO_INICIO = 0
 ESTADO_ESPERANDO_COMANDO = 1
@@ -51,7 +51,7 @@ class Command:
                 self.estado_actual = ESTADO_ESPERANDO_ENTER
 
         elif self.estado_actual == ESTADO_ESPERANDO_PARAMETROS:
-            if char == "\x0d":
+            if char == COMANDO_FIN:
                 parametros = [p.strip() for p in self.buffer_parametros.split(",") if p.strip() != ""]
 
                 if len(parametros) != self.args_esperados:
@@ -70,7 +70,7 @@ class Command:
                 self.buffer_parametros += char
 
         elif self.estado_actual == ESTADO_ESPERANDO_ENTER:
-            if char == "\x0d":
+            if char == COMANDO_FIN:
                 if self.func:
                     asyncio.create_task(self.func(self, self.serial))
                 self.__finalizar_recepcion()
