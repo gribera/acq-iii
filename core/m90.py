@@ -21,6 +21,7 @@ class M90:
                 await asyncio.sleep(interval)
 
     async def stop_logging(self):
+        self.serial.write(b"Logging M90 detenido.\n\r")
         self.logging = False
 
     async def read_voltage(self):
