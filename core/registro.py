@@ -1,6 +1,6 @@
 import asyncio
 
-class Registro:
+class RegistroService:
     def __init__(self, serial):
         self.serial = serial
 
