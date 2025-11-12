@@ -9,12 +9,34 @@ class RTCService:
     def now(self):
         return self._rtc.datetime
 
-    def set_datetime(self, ts):
-        self._rtc.datetime = ts
-
     def set_ymd_hms(self, y, m, d, hh, mm, ss, weekday=-1):
+        """
+        Configura la fecha y hora actual del RTC (Real Time Clock).
+
+        Args:
+            y (int): Año (formato yyyy).
+            m (int): Mes (1–12).
+            d (int): Día del mes (1–31).
+            hh (int): Hora en formato 24 horas (0–23).
+            mm (int): Minutos (0–59).
+            ss (int): Segundos (0–59).
+            weekday (int, optional): Día de la semana (0=lunes … 6=domingo).
+                Por defecto -1 para que el RTC lo calcule automáticamente.
+
+        Returns:
+            None
+        """
         ts = time.struct_time((y, m, d, hh, mm, ss, weekday, -1, -1))
-        self.set_datetime(ts)
+        self._set_datetime(ts)
+
+    def _set_datetime(self, ts):
+        """
+        Devuelve la fecha y hora actual del RTC.
+
+        Returns:
+            time.struct_time: Objeto con la fecha y hora actual.
+        """
+        self._rtc.datetime = ts
 
     @staticmethod
     def format(ts):
