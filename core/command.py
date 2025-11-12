@@ -23,17 +23,18 @@ class Command:
         self.args_esperados = 0
 
     async def espera_comando(self):
+        """ Espera comando para ser procesado por la máquina de estados """
         while self.serial.in_waiting > 0:
             char = self.serial.read(1).decode()
-            await self.__procesar_char(char)
+            await self._procesar_char(char)
             if self.estado_actual != ESTADO_INICIO:
                 self.inicio = time.monotonic()
                 self.led.value = True
 
         if time.monotonic() - self.inicio >= TIMEOUT_COMANDOS:
-            self.__finalizar_recepcion()
+            self._finalizar_recepcion()
 
-    async def __procesar_char(self, char):
+    async def _procesar_char(self, char):
         if self.estado_actual == ESTADO_INICIO:
             if char == COMANDO_INICIO:
                 self.estado_actual = ESTADO_ESPERANDO_COMANDO
@@ -65,7 +66,7 @@ class Command:
                     except ValueError:
                         self.serial.write(f"{self.func_code}: Parámetros deben ser números enteros\n\r".encode())
 
-                self.__finalizar_recepcion()
+                self._finalizar_recepcion()
             else:
                 self.buffer_parametros += char
 
@@ -73,9 +74,9 @@ class Command:
             if char == COMANDO_FIN:
                 if self.func:
                     asyncio.create_task(self.func(self, self.serial))
-                self.__finalizar_recepcion()
+                self._finalizar_recepcion()
 
-    def __finalizar_recepcion(self):
+    def _finalizar_recepcion(self):
         self.estado_actual = ESTADO_INICIO
         self.led.value = False
         self.buffer_parametros = ""

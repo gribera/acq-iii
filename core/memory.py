@@ -3,7 +3,7 @@ from utils.hardware import get_i2c
 import digitalio
 import board
 
-from config import E2
+from config import MEMORIAS
 
 class MemoryService:
     def __init__(self, write_protect_pin=board.D34):
@@ -27,7 +27,7 @@ class MemoryService:
         self.address = e2
         data = text.encode('ascii')
 
-        if e2 == E2["RTC"]:
+        if e2 == MEMORIAS["RTC"]:
             self._write_bytes_rtc(mem_addr, data)
         else:
             self._write_bytes(mem_addr, data)
@@ -47,7 +47,7 @@ class MemoryService:
         """
         self.address = e2
 
-        if e2 == E2["RTC"]:
+        if e2 == MEMORIAS["RTC"]:
             data =  self._read_bytes_rtc(mem_addr, length)
         else:
             data = self._read_bytes(mem_addr, length)
