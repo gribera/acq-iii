@@ -1,14 +1,18 @@
 import asyncio
 import digitalio
+import board
 
-class M90:
-    def __init__(self, serial, spi, cs_pin, led_pin):
+from utils.hardware import get_spi
+
+class M90Service:
+    def __init__(self, serial, spi=None, cs_pin=board.D53, led_pin=board.LED):
         self.serial = serial
-        self.spi = spi
+        self.spi = spi or get_spi()
         self.cs = digitalio.DigitalInOut(cs_pin)
         self.cs.direction = digitalio.Direction.OUTPUT
-        self.cs.value = True
-        self.logging = False
+        self.led = digitalio.DigitalInOut(led_pin)
+        self.led.direction = digitalio.Direction.OUTPUT
+        self._logging = False
 
     async def start_logging(self, filename="/VoltajePrueba.txt", interval=1.0):
         self.logging = True
@@ -21,6 +25,7 @@ class M90:
                 await asyncio.sleep(interval)
 
     async def stop_logging(self):
+        self.serial.write(b"Logging M90 detenido.\n\r")
         self.logging = False
 
     async def read_voltage(self):
