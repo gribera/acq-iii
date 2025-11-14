@@ -12,7 +12,7 @@ class MemoryService:
         self.wp.direction = digitalio.Direction.OUTPUT
         self._enable_write_protect()
 
-    def write_string(self, e2: int, mem_addr: int, text: str):
+    def write_string(self, e2: int, mem_addr: int, text: str, null_terminated = False):
         """
         Escribe un string en la memoria indicada.
 
@@ -26,6 +26,8 @@ class MemoryService:
         """
         self.address = e2
         data = text.encode('ascii')
+        if null_terminated:
+            data = data + b'\x00'
 
         if e2 == MEMORIAS["RTC"]:
             self._write_bytes_rtc(mem_addr, data)
@@ -46,13 +48,19 @@ class MemoryService:
             str: String leído desde la memoria.
         """
         self.address = e2
-
         if e2 == MEMORIAS["RTC"]:
             data =  self._read_bytes_rtc(mem_addr, length)
         else:
             data = self._read_bytes(mem_addr, length)
 
-        return data.decode('ascii')
+        text_bytes = bytearray()
+        for b in data:
+            if b == 0x00:
+                break
+            if 32 <= b < 127:
+                text_bytes.append(b)
+
+        return text_bytes.decode('ascii')
 
     def _disable_write_protect(self):
         self.wp.value = False
@@ -98,7 +106,6 @@ class MemoryService:
 
     def __del__(self):
         self.close()
-
 
     def _write_bytes_rtc(self, start_addr: int, data: bytes):
         if not (0x08 <= start_addr <= 0x3F):
