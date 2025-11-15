@@ -1,12 +1,15 @@
 from config import (EQUIPO, VERSION, FECHA)
 
 def show_help():
-    print("┏┓┏┓┏┓  ┳┳┳  |==========================================================")
-    print("┣┫┃ ┃┃━━┃┃┃  |================== Comandos disponibles ==================")
-    print("┛┗┗┛┗┻  ┻┻┻  |==========================================================")
+    print("[ ┏┓┏┓┏┓  ┳┳┳  ]========================================================")
+    print("[ ┣┫┃ ┃┃━━┃┃┃  ]================= Comandos disponibles =================")
+    print("[ ┛┗┗┛┗┻  ┻┻┻  ]========================================================")
     print("--- General ---")
     print("ESC ?\t\t\t\tAyuda")
     print("ESC e\t\t\t\tDatos y versión del equipo")
+    print("--- Config ---")
+    print("ESC s\t\t\t\tMostrar secuencia de inicio")
+    print("ESC S [w]\t\t\tHabilita/Deshabilita servicio seleccionado")
     print("--- RTC ---")
     print("ESC H [yyyy,mm,dd,hh,mm,ss]\tSetea fecha y hora en el RTC")
     print("ESC h\t\t\t\tLee fecha y hora desde el RTC")
