@@ -12,43 +12,44 @@ class MemoryService:
         self.wp.direction = digitalio.Direction.OUTPUT
         self._enable_write_protect()
 
-    def write_string(self, e2: int, mem_addr: int, text: str, null_terminated = False):
+    def write_string(self, memoria: int, mem_addr: int, text: str, null_terminated: bool = False):
         """
         Escribe un string en la memoria indicada.
 
         Args:
-            e2 (str): Dirección del dispositivo ("E1", "E2" o "RTC").
+            memoria (str): Dirección del dispositivo ("E1", "E2" o "RTC").
             mem_addr (int): Dirección de inicio donde se escribirá el string.
             text (str): String a escribir.
+            null_terminated (bool): Agrega caracter de fin de string
 
         Returns:
             None
         """
-        self.address = e2
+        self.address = memoria
         data = text.encode('ascii')
         if null_terminated:
             data = data + b'\x00'
 
-        if e2 == MEMORIAS["RTC"]:
+        if memoria == MEMORIAS["RTC"]:
             self._write_bytes_rtc(mem_addr, data)
         else:
             self._write_bytes(mem_addr, data)
 
 
-    def read_string(self, e2: int, mem_addr: int, length: int) -> str:
+    def read_string(self, memoria: int, mem_addr: int, length: int) -> str:
         """
         Lee un string desde la memoria indicada.
 
         Args:
-            e2 (str): Dirección del dispositivo ("E1", "E2" o "RTC").
+            memoria (str): Dirección del dispositivo ("E1", "E2" o "RTC").
             mem_addr (int): Dirección de inicio desde donde se comenzará a leer.
             length (int): Cantidad de bytes a leer.
 
         Returns:
             str: String leído desde la memoria.
         """
-        self.address = e2
-        if e2 == MEMORIAS["RTC"]:
+        self.address = memoria
+        if memoria == MEMORIAS["RTC"]:
             data =  self._read_bytes_rtc(mem_addr, length)
         else:
             data = self._read_bytes(mem_addr, length)
