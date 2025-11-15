@@ -3,19 +3,20 @@ import busio
 import board
 
 from utils.hardware import get_spi
+from utils.help import show_help, show_version
 from core.rtc import RTCService
 from core.registro import RegistroService
 from core.m90 import M90Service
 from core.memory import MemoryService
 from core.wifi import get_wifi
 
-from config import MEMORIAS
+from config import (MEMORIAS, EQUIPO, VERSION, FECHA)
 
-async def show_help(cmd, serial):
-    serial.write(f"*** Comandos disponibles:\n\r".encode())
-    serial.write(f"ESC ? - \t\t\tAyuda\n\r".encode())
-    serial.write(f"ESC H - \t\t\tSetea fecha y hora en el RTC\n\r".encode())
-    serial.write(f"ESC h - \t\t\tLee fecha y hora desde el RTC\n\r".encode())
+async def get_help(cmd, serial):
+    show_help()
+
+async def get_version(cmd, serial):
+    show_version()
 
 async def rtc_read(cmd, serial):
     rtc = getattr(cmd, "rtc", None) or RTCService()
@@ -58,7 +59,8 @@ async def wifi_disconnect(cmd, serial):
     wifi.disconnect()
 
 COMANDOS = {
-    "?": (show_help, 0),
+    "?": (get_help, 0),
+    "e": (get_version, 0),
     "H": (rtc_set, 6),
     "h": (rtc_read, 0),
     "w": (wifi_read, 0),

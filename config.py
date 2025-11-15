@@ -1,3 +1,8 @@
+# Datos versión
+EQUIPO = "ACQ-III - M90E36A"
+VERSION = "0.0.1"
+FECHA = "15-11-2025"
+
 # Máquina de estados
 COMANDO_INICIO = "\x1b"                         # Comando que da inicio a la recepción de comandos
 COMANDO_FIN = "\x0d"                            # Comando que da fin a la recepción de comandos
