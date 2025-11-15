@@ -7,7 +7,13 @@ Estás funciones sirven para compartir los buses y no instanciarlos cada vez que
 
 _i2c = None
 _spi = None
-_uart = None
+_uarts = {}
+
+_UART_PINS = {
+    1: (board.TX, board.RX),
+    2: (board.TX2, board.RX2),
+    3: (board.TX3, board.RX3),
+}
 
 def get_i2c():
     """Devuelve una única instancia compartida de I2C"""
@@ -54,8 +60,13 @@ async def run_scan_i2c(cmd, serial):
         else:
             tipo = " (Desconocido)"
         serial.write(f" - {hex(addr)}{tipo}\r\n".encode())
-# def get_uart():
-#     global _uart
-#     if _uart is None:
-#         _uart = busio.UART(board.TX, board.RX, baudrate=115200)
-#     return _uart
+
+def get_uart(index=1, baudrate=115200):
+    global _uarts
+    if index not in _uarts:
+        try:
+            tx, rx = _UART_PINS[index]
+            _uarts[index] = busio.UART(tx, rx, baudrate=baudrate)
+        except KeyError:
+            raise ValueError(f"UART {index} no definida en esta placa.")
+    return _uarts[index]
