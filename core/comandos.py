@@ -2,12 +2,9 @@ import asyncio
 import busio
 import board
 
-from utils.hardware import get_spi
 from utils.help import show_help, show_version
+from core.startup import StartupService
 from core.rtc import RTCService
-from core.registro import RegistroService
-from core.m90 import M90Service
-from core.memory import MemoryService
 from core.wifi import get_wifi
 
 from config import (MEMORIAS, EQUIPO, VERSION, FECHA)
@@ -17,6 +14,14 @@ async def get_help(cmd, serial):
 
 async def get_version(cmd, serial):
     show_version()
+
+async def get_startup_info(cmd, serial):
+    startup = StartupService()
+    startup.get_startup_info()
+
+async def set_startup_service(cmd, serial, service):
+    startup = StartupService()
+    startup.toggle_startup_service(service)
 
 async def rtc_read(cmd, serial):
     rtc = getattr(cmd, "rtc", None) or RTCService()
@@ -61,6 +66,8 @@ async def wifi_disconnect(cmd, serial):
 COMANDOS = {
     "?": (get_help, 0),
     "e": (get_version, 0),
+    "s": (get_startup_info, 0),
+    "S": (set_startup_service, 1),
     "H": (rtc_set, 6),
     "h": (rtc_read, 0),
     "w": (wifi_read, 0),
