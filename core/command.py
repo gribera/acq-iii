@@ -3,7 +3,9 @@ import time
 import board
 import digitalio
 from core.comandos import COMANDOS
-from config import COMANDO_INICIO, COMANDO_FIN, TIMEOUT_COMANDOS
+from config import (COMANDO_INICIO,
+                    COMANDO_FIN,
+                    TIMEOUT_COMANDOS)
 
 ESTADO_INICIO = 0
 ESTADO_ESPERANDO_COMANDO = 1
@@ -96,8 +98,8 @@ class Command:
                 if self.func:
                     asyncio.create_task(self.func(self, self.serial))
                 self._finalizar_recepcion()
-    def _finalizar_recepcion(self):
 
+    def _finalizar_recepcion(self):
         self.estado_actual = ESTADO_INICIO
         self.led.value = False
         self.buffer_parametros = ""
