@@ -7,59 +7,59 @@ from core.startup import StartupService
 from core.rtc import RTCService
 from core.wifi import get_wifi
 
-from config import (MEMORIAS, EQUIPO, VERSION, FECHA)
+async def get_help(cmd, transport):
+    await show_help(transport)
 
-async def get_help(cmd, serial):
-    show_help()
+async def get_version(cmd, transport):
+    await show_version(transport)
 
-async def get_version(cmd, serial):
-    show_version()
-
-async def get_startup_info(cmd, serial):
+async def get_startup_info(cmd, transport):
     startup = StartupService()
+    startup.set_transport(transport)
     startup.get_startup_info()
 
-async def set_startup_service(cmd, serial, service):
+async def set_startup_service(cmd, transport, service):
     startup = StartupService()
+    startup.set_transport(transport)
     startup.toggle_startup_service(service)
 
-async def rtc_read(cmd, serial):
+async def rtc_read(cmd, transport):
     rtc = getattr(cmd, "rtc", None) or RTCService()
     cmd.rtc = rtc
     ts = rtc.now()
-    serial.write((RTCService.format(ts) + "\r\n").encode())
+    transport.write((RTCService.format(ts) + "\r\n").encode())
 
-async def rtc_set(cmd, serial, yyyy, mm, dd, HH, MM, SS):
+async def rtc_set(cmd, transport, yyyy, mm, dd, HH, MM, SS):
     rtc = getattr(cmd, "rtc", None) or RTCService()
     cmd.rtc = rtc
     y, mo, d, h, mi, s = map(int, (yyyy, mm, dd, HH, MM, SS))
     rtc.set_ymd_hms(y, mo, d, h, mi, s)
-    serial.write(b"[RTC] Fecha y hora actualizada\r\n")
+    transport.write(b"[RTC] Fecha y hora actualizada\r\n")
 
-async def wifi_read(cmd, serial):
+async def wifi_read(cmd, transport):
     wifi = get_wifi()
+    wifi.set_transport(transport)
     wifi.get_wifi_info()
 
-async def wifi_write(cmd, serial, input_string: str):
+async def wifi_write(cmd, transport, input_string: str):
     fn = cmd.sub_code
     wifi = get_wifi()
+    wifi.set_transport(transport)
 
     if fn == "s":
         wifi.set_ssid(str(input_string))
-        serial.write(b"[WIFI] SSID actualizado\r\n")
     elif fn == "p":
         wifi.set_password(str(input_string))
-        serial.write(b"[WIFI] Clave actualizada\r\n")
-    else:
-        serial.write(b"[WIFI] Comando desconocido")
 
-async def wifi_connect(cmd, serial):
+async def wifi_connect(cmd, transport):
     wifi = get_wifi()
+    wifi.set_transport(transport)
 
     wifi.connect()
 
-async def wifi_disconnect(cmd, serial):
+async def wifi_disconnect(cmd, transport):
     wifi = get_wifi()
+    wifi.set_transport(transport)
 
     wifi.disconnect()
 

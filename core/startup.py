@@ -9,11 +9,19 @@ from config import (MEMORIAS,
 
 class StartupService:
     def __init__(self):
+        self._transport = None
         mem = MemoryService()
         self._sequence = mem.read_string(MEMORIAS[STARTUP_DATA_STORAGE],
                                      STARTUP_SEQUENCE_BYTE,
                                      1)
         mem.close()
+
+    def set_transport(self, transport):
+        """
+        Define el 'terminal' actual (USB, WiFi, etc.).
+        Debe tener un método .write(...)
+        """
+        self._transport = transport
 
     def get_startup_info(self):
         """
@@ -24,10 +32,10 @@ class StartupService:
         """
         seq = self._sequence.encode()[0]
 
-        print("Servicios de arranque:")
+        self._transport.write("Servicios de arranque:\r\n")
         for cod_service, (service, bit) in STARTUP_SERVICES.items():
             enabled = bool((seq >> bit) & 1)
-            print(f"{bit} - {service} ({cod_service}): {"Habilitado" if enabled else "Deshabilitado"}")
+            self._transport.write(f"{bit} - {service} ({cod_service}): {"Habilitado" if enabled else "Deshabilitado"}\r\n")
 
     def toggle_startup_service(self, cod_service: str):
         """
@@ -39,9 +47,9 @@ class StartupService:
         Returns:
             None
         """
-        print("[Startup]", end=" ")
+        self._transport.write("[Startup] ")
         if cod_service not in STARTUP_SERVICES:
-            print(f"Servicio desconocido: {cod_service}")
+            self._transport.write(f"Servicio desconocido: {cod_service}\r\n")
             return
 
         (service, bit) = STARTUP_SERVICES[cod_service]
@@ -61,7 +69,7 @@ class StartupService:
         mem.close()
 
         enabled = bool((seq >> bit) & 1)
-        print(f"{service}: {"Habilitado" if enabled else "Deshabilitado"}.")
+        self._transport.write(f"{service}: {"Habilitado" if enabled else "Deshabilitado"}.\r\n")
 
     def exec_startup(self):
         """
