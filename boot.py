@@ -10,4 +10,5 @@ switch.pull = digitalio.Pull.UP
 
 # Si la entrada "switch" esta conectada a Gnd, el programa en CircuitPython
 # puede escribir archivos en el FileSystem del board
-storage.remount("/", readonly=switch.value)
+# storage.remount("/", readonly=switch.value)
+storage.remount("/", readonly=False)

@@ -1,5 +1,7 @@
 import board
 import busio
+import usb_cdc  # type: ignore
+import asyncio
 
 """
 Estás funciones sirven para compartir los buses y no instanciarlos cada vez que se llaman
@@ -66,7 +68,36 @@ def get_uart(index=1, baudrate=115200):
     if index not in _uarts:
         try:
             tx, rx = _UART_PINS[index]
-            _uarts[index] = busio.UART(tx, rx, baudrate=baudrate)
+            _uarts[index] = busio.UART(tx, rx, baudrate=baudrate, timeout=0.01)
         except KeyError:
             raise ValueError(f"UART {index} no definida en esta placa.")
     return _uarts[index]
+
+async def serial_task(cmd):
+    serial = usb_cdc.console
+
+    while True:
+        if serial.in_waiting > 0:
+            data = serial.read(1)
+            if data:
+                try:
+                    char = data.decode()
+                except UnicodeError:
+                    continue
+
+                await cmd.get_comando(char, serial)
+
+        await asyncio.sleep(0)
+
+async def wifi_task(cmd, wifi):
+    while True:
+        data = wifi.read(1)
+        if data:
+            try:
+                ch = data.decode()
+            except UnicodeError:
+                continue
+
+            await cmd.get_comando(ch, wifi)
+
+        await asyncio.sleep(0)

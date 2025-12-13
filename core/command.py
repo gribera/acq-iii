@@ -14,9 +14,10 @@ ESTADO_ESPERANDO_PARAMETROS = 3
 ESTADO_ESPERANDO_ENTER = 4
 
 class Command:
-    def __init__(self, serial):
-        self.serial = serial
+    def __init__(self):
         self.estado_actual = ESTADO_INICIO
+        self.transport = None # transport define de donde viene el comando a parsear y contesta
+                              # de acuerdo a de donde venga. (Serial, WiFi, ETH, etc)
         self.led = digitalio.DigitalInOut(board.D13)
         self.led.direction = digitalio.Direction.OUTPUT
         self.inicio = 0
@@ -26,14 +27,13 @@ class Command:
         self.func = None
         self.args_esperados = 0
 
-    async def espera_comando(self):
-        """ Espera comando para ser procesado por la máquina de estados """
-        while self.serial.in_waiting > 0:
-            char = self.serial.read(1).decode()
-            await self._procesar_char(char)
-            if self.estado_actual != ESTADO_INICIO:
-                self.inicio = time.monotonic()
-                self.led.value = True
+    async def get_comando(self, char: str, transport):
+        """ Recibe comando para ser procesado por la máquina de estados """
+        self.transport = transport
+        await self._procesar_char(char)
+        if self.estado_actual != ESTADO_INICIO:
+            self.inicio = time.monotonic()
+            self.led.value = True
 
         if time.monotonic() - self.inicio >= TIMEOUT_COMANDOS:
             self._finalizar_recepcion()
@@ -72,23 +72,23 @@ class Command:
             else:
                 # Evita que se muestre el mensaje cuando el usuario presiona ENTER sin subcomando
                 if char != COMANDO_FIN:
-                    self.serial.write(f"Subcomando '{char}' no válido\r\n".encode())
+                    self.transport.write(f"Subcomando '{char}' no válido\r\n".encode())
                 self._finalizar_recepcion()
 
         elif self.estado_actual == ESTADO_ESPERANDO_PARAMETROS:
             if char == COMANDO_FIN:
                 parametros = [p.strip() for p in self.buffer_parametros.split(",") if p.strip() != ""]
                 if len(parametros) != self.args_esperados:
-                    self.serial.write(
+                    self.transport.write(
                         f"Error: Se esperaban {self.args_esperados} parámetros, pero se recibieron {len(parametros)}\r\n".encode()
                     )
                 else:
                     try:
                         # Permitimos strings si no son solo dígitos
                         casted = [int(p) if p.isdigit() else p for p in parametros]
-                        asyncio.create_task(self.func(self, self.serial, *casted))
+                        asyncio.create_task(self.func(self, self.transport, *casted))
                     except Exception as e:
-                        self.serial.write(f"Error ejecutando comando: {e}\r\n".encode())
+                        self.transport.write(f"Error ejecutando comando: {e}\r\n".encode())
                 self._finalizar_recepcion()
             else:
                 self.buffer_parametros += char
@@ -96,7 +96,7 @@ class Command:
         elif self.estado_actual == ESTADO_ESPERANDO_ENTER:
             if char == COMANDO_FIN:
                 if self.func:
-                    asyncio.create_task(self.func(self, self.serial))
+                    asyncio.create_task(self.func(self, self.transport))
                 self._finalizar_recepcion()
 
     def _finalizar_recepcion(self):
