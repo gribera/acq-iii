@@ -23,8 +23,8 @@ MEMORIAS = {                                    # Lista con las memorias disponi
 }
 
 # WiFi
-WIFI_DATA_STORAGE = "RTC"                        # Memoria del RTC para guardar datos de conexión
-WIFI_SSID_START_ADDRESS = 0x09                   # Inicio de guardado del Access Point
-WIFI_SSID_LENGTH = 20                            # Cantidad de bytes reservados para el AP
-WIFI_PASS_START_ADDRESS = 0x1D                   # Inicio de guardado de la clave
-WIFI_PASS_LENGTH = 20                            # Cantidad de bytes reservados para la clave
+WIFI_DATA_STORAGE       = "E1"
+WIFI_SSID_START_ADDRESS = 0xFE02                 # 32 bytes para nombre de red
+WIFI_SSID_LENGTH        = 32
+WIFI_PASS_START_ADDRESS = 0xFE22                 # 32 bytes para clave (0xFE02 + 32)
+WIFI_PASS_LENGTH        = 32
