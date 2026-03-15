@@ -1,12 +1,12 @@
 import time
-from utils.hardware import get_i2c
 import digitalio
-import board
 
+from utils.hardware import get_i2c
 from config import MEMORIAS
+from pins import MEM_WP
 
 class MemoryService:
-    def __init__(self, write_protect_pin=board.D34):
+    def __init__(self, write_protect_pin=MEM_WP):
         self.i2c = get_i2c()
         self.wp = digitalio.DigitalInOut(write_protect_pin)
         self.wp.direction = digitalio.Direction.OUTPUT

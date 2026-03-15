@@ -1,11 +1,11 @@
 import asyncio
 import digitalio
-import board
 
 from utils.hardware import get_spi
+from pins import M90_CS, LED
 
 class M90Service:
-    def __init__(self, serial, spi=None, cs_pin=board.D53, led_pin=board.LED):
+    def __init__(self, serial, spi=None, cs_pin=M90_CS, led_pin=LED):
         self.serial = serial
         self.spi = spi or get_spi()
         self.cs = digitalio.DigitalInOut(cs_pin)

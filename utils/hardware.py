@@ -1,7 +1,14 @@
-import board
 import busio
 import usb_cdc  # type: ignore
 import asyncio
+
+from pins import (
+    I2C_SCL, I2C_SDA,
+    SPI_SCK, SPI_MOSI, SPI_MISO,
+    UART1_TX, UART1_RX,
+    UART2_TX, UART2_RX,
+    UART3_TX, UART3_RX,
+)
 
 """
 Estás funciones sirven para compartir los buses y no instanciarlos cada vez que se llaman
@@ -12,23 +19,23 @@ _spi = None
 _uarts = {}
 
 _UART_PINS = {
-    1: (board.TX, board.RX),
-    2: (board.TX2, board.RX2),
-    3: (board.TX3, board.RX3),
+    1: (UART1_TX, UART1_RX),
+    2: (UART2_TX, UART2_RX),
+    3: (UART3_TX, UART3_RX),
 }
 
 def get_i2c():
     """Devuelve una única instancia compartida de I2C"""
     global _i2c
     if _i2c is None:
-        _i2c = busio.I2C(board.SCL, board.SDA)
+        _i2c = busio.I2C(I2C_SCL, I2C_SDA)
     return _i2c
 
 def get_spi():
     """Devuelve una única instancia compartida de SPI"""
     global _spi
     if _spi is None:
-        _spi = busio.SPI(board.SCK, board.MOSI, board.MISO)
+        _spi = busio.SPI(SPI_SCK, SPI_MOSI, SPI_MISO)
         while not _spi.try_lock():
             pass
         _spi.configure(baudrate=500000, phase=0, polarity=0)
