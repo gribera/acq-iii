@@ -21,9 +21,6 @@ class MemoryService:
             mem_addr (int): Dirección de inicio donde se escribirá el string.
             text (str): String a escribir.
             null_terminated (bool): Agrega caracter de fin de string
-
-        Returns:
-            None
         """
         self.address = memoria
         data = text.encode('ascii')
@@ -63,6 +60,48 @@ class MemoryService:
 
         return text_bytes.decode('ascii')
 
+    def read_byte(self, memoria: int, mem_addr: int) -> int:
+        """
+        Lee un byte desde la memoria indicada.
+
+        Args:
+            memoria (str): Dirección del dispositivo ("E1", "E2" o "RTC").
+            mem_addr (int): Dirección de inicio desde donde se comenzará a leer.
+
+        Returns:
+            int: Byte leído desde la memoria.
+        """
+        self.address = memoria
+        if memoria == MEMORIAS["RTC"]:
+            data = self._read_bytes_rtc(mem_addr, 1)
+        else:
+            data = self._read_bytes(mem_addr, 1)
+        return data[0]
+
+    def write_byte(self, memoria: int, mem_addr: int, value: int):
+        """
+        Escribe un byte en la memoria indicada.
+
+        Args:
+            memoria (str): Dirección del dispositivo ("E1", "E2" o "RTC").
+            mem_addr (int): Dirección de inicio donde se escribirá el byte.
+            value (int): Valor a escribir.
+        """
+        self.address = memoria
+        data = bytes([value & 0xFF])
+        if memoria == MEMORIAS["RTC"]:
+            self._write_bytes_rtc(mem_addr, data)
+        else:
+            self._write_bytes(mem_addr, data)
+
+    def close(self):
+        if self.wp:
+            self.wp.deinit()
+            self.wp = None
+
+    def __del__(self):
+        self.close()
+
     def _disable_write_protect(self):
         self.wp.value = False
 
@@ -99,14 +138,6 @@ class MemoryService:
             self.i2c.unlock()
 
         return bytes(in_buf)
-
-    def close(self):
-        if self.wp:
-            self.wp.deinit()
-            self.wp = None
-
-    def __del__(self):
-        self.close()
 
     def _write_bytes_rtc(self, start_addr: int, data: bytes):
         if not (0x08 <= start_addr <= 0x3F):

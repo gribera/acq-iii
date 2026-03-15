@@ -6,6 +6,7 @@ from utils.help import show_help, show_version
 from core.startup import StartupService
 from core.rtc import RTCService
 from core.wifi import get_wifi
+from core.acq import get_acq
 
 async def get_help(cmd, transport):
     await show_help(transport)
@@ -63,6 +64,30 @@ async def wifi_disconnect(cmd, transport):
 
     wifi.disconnect()
 
+async def acq_set_modo(cmd, transport, modo):
+    acq = get_acq()
+    try:
+        acq.set_modo(int(modo))
+        transport.write(f"[ACQ] Modo {modo} configurado\r\n".encode())
+    except ValueError as e:
+        transport.write(f"[ACQ] Error: {e}\r\n".encode())
+
+async def acq_set_canales(cmd, transport, n):
+    acq = get_acq()
+    try:
+        acq.set_cant_analog1(int(n))
+        transport.write(f"[ACQ] Canales analógicos activos: {n}\r\n".encode())
+    except ValueError as e:
+        transport.write(f"[ACQ] Error: {e}\r\n".encode())
+
+async def acq_transmitir(cmd, transport, interval):
+    acq = get_acq()
+    acq.transmit_analog(transport)
+
+async def acq_leer_digital(cmd, transport):
+    acq = get_acq()
+    acq.transmit_digital(transport)
+
 COMANDOS = {
     "?": (get_help, 0),
     "e": (get_version, 0),
@@ -71,6 +96,10 @@ COMANDOS = {
     "H": (rtc_set, 6),
     "h": (rtc_read, 0),
     "w": (wifi_read, 0),
+    "E": (acq_set_modo, 1),
+    "A": (acq_set_canales, 1),
+    "T": (acq_transmitir, 1),
+    "U": (acq_leer_digital, 0),
     "W": {
         "c": (wifi_connect, 0),
         "d": (wifi_disconnect, 0),
