@@ -64,6 +64,23 @@ async def wifi_disconnect(cmd, transport):
 
     wifi.disconnect()
 
+async def acq_start_recording(cmd, transport, tiempo_reg):
+    acq = get_acq()
+    try:
+        acq.start_recording(int(tiempo_reg), transport)
+        transport.write(f"[ACQ] Registro iniciado cada {tiempo_reg}s\r\n".encode())
+    except ValueError as e:
+        transport.write(f"[ACQ] Error: {e}\r\n".encode())
+
+async def acq_stop_recording(cmd, transport):
+    acq = get_acq()
+    acq.stop_recording()
+    transport.write(b"[ACQ] Registro detenido\r\n")
+
+async def acq_download(cmd, transport):
+    acq = get_acq()
+    acq.download(transport)
+
 async def acq_set_modo(cmd, transport, modo):
     acq = get_acq()
     try:
@@ -82,7 +99,7 @@ async def acq_set_canales(cmd, transport, n):
 
 async def acq_transmitir(cmd, transport, interval):
     acq = get_acq()
-    acq.transmit_analog(transport)
+    acq.transmit_analog(transport, interval)
 
 async def acq_leer_digital(cmd, transport):
     acq = get_acq()
@@ -96,14 +113,19 @@ COMANDOS = {
     "H": (rtc_set, 6),
     "h": (rtc_read, 0),
     "w": (wifi_read, 0),
-    "E": (acq_set_modo, 1),
-    "A": (acq_set_canales, 1),
-    "T": (acq_transmitir, 1),
-    "U": (acq_leer_digital, 0),
     "W": {
         "c": (wifi_connect, 0),
         "d": (wifi_disconnect, 0),
         "s": (wifi_write, 1),
         "p": (wifi_write, 1),
     },
+    "E": (acq_set_modo, 1),
+    "A": (acq_set_canales, 1),
+    "R": {
+        "s": (acq_start_recording, 1),
+        "p": (acq_stop_recording, 0),
+        "d": (acq_download, 0),
+    },
+    "T": (acq_transmitir, 1),
+    "U": (acq_leer_digital, 0),
 }

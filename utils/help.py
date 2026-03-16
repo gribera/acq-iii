@@ -21,6 +21,14 @@ async def show_help(transport):
         "ESC W p [password]\t\tSetea password del WiFi\r\n"
         "ESC W c\t\t\t\tConecta a la red WiFi\r\n"
         "ESC W d\t\t\t\tDesconecta de la red WiFi\r\n"
+        "--- ACQ ---\r\n"
+        "ESC E\t\t\t\tSetea modo de trabajo\r\n"
+        "ESC A\t\t\t\tSetea cantidad de canales analógicos\r\n"
+        "ESC T [tiempo]\t\t\tTransmite lectura de canales analógicos\r\n"
+        "ESC U\t\t\t\tTransmite lectura de canales digitales\r\n"
+        "ESC R s [tiempo]\t\t\tInicia registro en EEPROM\r\n"
+        "ESC R p\t\t\t\tDetiene registro en EEPROM\r\n"
+        "ESC R d\t\t\t\tDescarga datos de la EEPROM\r\n"
     )
     transport.write(text.encode("utf-8"))
 

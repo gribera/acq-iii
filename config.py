@@ -1,6 +1,6 @@
 # Datos versión
 EQUIPO = "ACQ-III - M90E36A"
-VERSION = "0.0.1"
+VERSION = "0.0.2"
 FECHA = "15-11-2025"
 
 # Modos de trabajo
@@ -23,20 +23,33 @@ MODO_AUI           = 5
 #    +09    11    tiempo_reg (L) --> Tiempo de registro
 #    +10    12    tiempo_reg (H)
 #    +11    13    modo
+RTC_ADDR_PUMEM        = 0x09
 RTC_ADDR_CANT_ANALOG1 = 0x0D
 RTC_ADDR_CANT_ANALOG2 = 0x0E
+RTC_ADDR_CODIGO       = 0x0F   # código de estado de la última operación
+RTC_ADDR_REG_FLAG     = 0x10   # flag de registro activo (0=inactivo, 1=activo)
+RTC_ADDR_TIEMPO_REG   = 0x11   # 2 bytes: intervalo de registro en segundos
 RTC_ADDR_MODO         = 0x13
 
+# Área de registro en EEPROM E1 (últimos 512 bytes reservados para config)
+MEM_RECORDING_DEVICE = "E1"
+MEM_FIN_REG          = 0xFDFF  # 65023 — último byte disponible para registro
+
+# Códigos de estado (RTC_ADDR_CODIGO)
+CODIGO_IDLE     = 0x00
+CODIGO_REGISTRO = 0x01
+CODIGO_DESCARGA = 0x02
+
 # Startup (secuencia de inicio)
-STARTUP_DATA_STORAGE = "RTC"                    # Memoria del RTC para guardar el byte de startup
+STARTUP_DATA_STORAGE  = "RTC"                   # Memoria del RTC para guardar el byte de startup
 STARTUP_SEQUENCE_BYTE = 0x08                    # Dirección donde se va a alojar el byte de startup
 STARTUP_SERVICES = {                            # Servicios disponibles para ejecutar al inicio
   "w": ("WiFi", 0)
 }
 
 # Máquina de estados
-COMANDO_INICIO = "\x1b"                         # Comando que da inicio a la recepción de comandos
-COMANDO_FIN = "\x0d"                            # Comando que da fin a la recepción de comandos
+COMANDO_INICIO   = "\x1b"                       # Comando que da inicio a la recepción de comandos
+COMANDO_FIN      = "\x0d"                       # Comando que da fin a la recepción de comandos
 TIMEOUT_COMANDOS = 5                            # Timeout para la recepción de comandos
 
 # Memorias

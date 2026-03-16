@@ -60,6 +60,21 @@ class MemoryService:
 
         return text_bytes.decode('ascii')
 
+    def read_bytes(self, memoria: int, mem_addr: int, length: int) -> bytes:
+        """Lee `length` bytes desde la memoria indicada."""
+        self.address = memoria
+        if memoria == MEMORIAS["RTC"]:
+            return self._read_bytes_rtc(mem_addr, length)
+        return self._read_bytes(mem_addr, length)
+
+    def write_bytes(self, memoria: int, mem_addr: int, data: bytes):
+        """Escribe `data` en la memoria indicada."""
+        self.address = memoria
+        if memoria == MEMORIAS["RTC"]:
+            self._write_bytes_rtc(mem_addr, data)
+        else:
+            self._write_bytes(mem_addr, data)
+
     def read_byte(self, memoria: int, mem_addr: int) -> int:
         """
         Lee un byte desde la memoria indicada.
