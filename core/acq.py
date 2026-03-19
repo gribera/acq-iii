@@ -16,7 +16,9 @@ from config import (MEMORIAS,
                     MEM_FIN_REG,
                     CODIGO_IDLE,
                     CODIGO_REGISTRO,
-                    CODIGO_DESCARGA)
+                    CODIGO_DESCARGA,
+                    MODO_ACQ1_ONLINE,
+                    MODO_ACQ1_REGISTRO)
 
 _instance = None
 
@@ -30,6 +32,9 @@ class ACQService:
         self._pumem        = self._load_pumem(mem)
         self._tiempo_reg   = self._load_tiempo_reg(mem)
         mem.close()
+
+        self._transmit = False
+        self._transmit_task = None
 
         if self._modo < 1 or self._modo > 5:
             self._modo = 1
@@ -65,8 +70,6 @@ class ACQService:
     def pumem(self):
         return self._pumem
 
-    # ── Configuración ─────────────────────────────────────────────────────────
-
     def set_modo(self, modo: int):
         if modo < 1 or modo > 5:
             raise ValueError("Modo debe ser entre 1 y 5")
@@ -82,8 +85,6 @@ class ACQService:
         mem = MemoryService()
         mem.write_byte(MEMORIAS["RTC"], RTC_ADDR_CANT_ANALOG1, n)
         mem.close()
-
-    # ── Modo 1: lectura en tiempo real ────────────────────────────────────────
 
     def read_analog(self):
         """
@@ -111,9 +112,9 @@ class ACQService:
                 byte_val |= (1 << i)
         return byte_val
 
-    def transmit_analog(self, transport, interval):
+    def transmit_analog(self, transport):
         """
-        Envía la lectura de los canales activos (Modo 1).
+        Envía una muestra de los canales analógicos activos
         """
         values = self.read_analog()
         buf = bytearray()
@@ -122,8 +123,35 @@ class ACQService:
             buf.append(v & 0xFF)
         transport.write(bytes(buf))
 
+    def start_transmit(self, transport, interval_us: int):
+        """
+        Inicia transmisión temporizada de canales analógicos (Modo 1).
+        """
+        if self.modo != MODO_ACQ1_ONLINE:
+            raise ValueError("Modo incorrecto")
+        if interval_us < 0 or interval_us > 10_000_000:
+            raise ValueError("Intervalo debe ser entre 0 y 10000000 microsegundos")
+
+        t_min = 20_000_000 * self._cant_analog1 // 115200
+        if interval_us != 0 and interval_us < t_min:
+            raise ValueError(f"Intervalo mínimo es {t_min} µs para {self._cant_analog1} canales")
+
+        # Si el intervalo es 0, transmite una sola vez
+        if interval_us == 0:
+            self.transmit_analog(transport)
+            return
+
+        # Si el intervalo es mayor a 0, crea un task
+        self._transmit = True
+        self._transmit_task = asyncio.create_task(self._transmit_loop(transport, interval_us))
+
+    def stop_transmit(self, transport):
+        self._transmit = False
+        if self._transmit_task is not None:
+            self._transmit_task.cancel()
+            self._transmit_task = None
+
     def transmit_digital(self, transport):
-        """Envía 1 byte con el estado de las 8 entradas digitales."""
         transport.write(bytes([self.read_digital()]))
 
     def start_recording(self, tiempo_reg: int, transport):
@@ -133,6 +161,8 @@ class ACQService:
         Args:
             tiempo_reg: intervalo de registro en segundos (1-3600).
         """
+        if self.modo != MODO_ACQ1_REGISTRO:
+            raise ValueError("Modo incorrecto")
         if tiempo_reg < 1 or tiempo_reg > 3600:
             raise ValueError("Intervalo debe ser entre 1 y 3600 segundos")
         if self._reg_flag:
@@ -154,7 +184,9 @@ class ACQService:
         self._task = asyncio.create_task(self._recording_loop(transport))
 
     def stop_recording(self):
-        """Detiene el registro en curso."""
+        """
+        Detiene el registro en curso.
+        """
         self._reg_flag = 0
         if self._task is not None:
             self._task.cancel()
@@ -195,6 +227,11 @@ class ACQService:
         self._save_pumem(mem)
         mem.write_byte(MEMORIAS["RTC"], RTC_ADDR_CODIGO, CODIGO_DESCARGA)
         mem.close()
+
+    async def _transmit_loop(self, transport, interval_us: int):
+        while self._transmit:
+            self.transmit_analog(transport)
+            await asyncio.sleep(interval_us / 1_000_000)
 
     async def _recording_loop(self, transport):
         while self._reg_flag and not self._mem_full:
@@ -248,8 +285,7 @@ class ACQService:
 
     def _write_sample(self, mem):
         """
-        Graba una muestra: 1 byte digital + N×2 bytes analógicos (little-endian).
-        Formato idéntico al .ino (Registro_Temp_E2).
+        1 byte lectura digital digital + N×2 bytes analógicos
         """
         buf = bytearray([self.read_digital()])
         for v in self.read_analog():
@@ -258,7 +294,9 @@ class ACQService:
         self._eeprom_write(mem, bytes(buf))
 
     def _eeprom_write(self, mem, data: bytes):
-        """Escribe bytes en EEPROM actualizando pumem. Detiene si memoria llena."""
+        """
+        Escribe bytes en EEPROM actualizando pumem. Detiene si memoria llena.
+        """
         if self._mem_full:
             return
         device = MEMORIAS[MEM_RECORDING_DEVICE]

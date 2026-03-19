@@ -1,4 +1,7 @@
 from config import (EQUIPO, VERSION, FECHA)
+from core.acq import get_acq
+
+acq = get_acq()
 
 async def show_help(transport):
     text = (
@@ -24,9 +27,10 @@ async def show_help(transport):
         "--- ACQ ---\r\n"
         "ESC E\t\t\t\tSetea modo de trabajo\r\n"
         "ESC A\t\t\t\tSetea cantidad de canales analógicos\r\n"
-        "ESC T [tiempo]\t\t\tTransmite lectura de canales analógicos\r\n"
-        "ESC U\t\t\t\tTransmite lectura de canales digitales\r\n"
-        "ESC R s [tiempo]\t\t\tInicia registro en EEPROM\r\n"
+        "ESC L s [tiempo]\t\tTransmite lectura de canales analógicos\r\n"
+        "ESC L p\t\t\t\tDetiene transmisión de canales analógicos\r\n"
+        "ESC L u\t\t\t\tTransmite lectura de canales digitales\r\n"
+        "ESC R s [tiempo]\t\tInicia registro en EEPROM\r\n"
         "ESC R p\t\t\t\tDetiene registro en EEPROM\r\n"
         "ESC R d\t\t\t\tDescarga datos de la EEPROM\r\n"
     )
@@ -46,5 +50,7 @@ async def show_version(transport):
       f"Equipo: {EQUIPO}\r\n"
       f"Versión: {VERSION}\r\n"
       f"Fecha: {FECHA}\r\n"
+      f"Modo: {acq.modo}\r\n"
+      f"Canales analógicos: {acq.cant_analog1}\r\n"
     )
     transport.write(text.encode("utf-8"))

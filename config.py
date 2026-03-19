@@ -1,7 +1,7 @@
 # Datos versión
 EQUIPO = "ACQ-III - M90E36A"
-VERSION = "0.0.2"
-FECHA = "15-11-2025"
+VERSION = "0.1.0"
+FECHA = "18-03-2026"
 
 # Modos de trabajo
 MODO_ACQ1_ONLINE   = 1

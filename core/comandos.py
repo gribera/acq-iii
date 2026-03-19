@@ -99,7 +99,14 @@ async def acq_set_canales(cmd, transport, n):
 
 async def acq_transmitir(cmd, transport, interval):
     acq = get_acq()
-    acq.transmit_analog(transport, interval)
+    try:
+        acq.start_transmit(transport, int(interval))
+    except ValueError as e:
+        transport.write(f"[ACQ] Error: {e}\r\n".encode())
+
+async def acq_stop_transmitir(cmd, transport):
+    acq = get_acq()
+    acq = acq.stop_transmit(transport)
 
 async def acq_leer_digital(cmd, transport):
     acq = get_acq()
@@ -126,6 +133,9 @@ COMANDOS = {
         "p": (acq_stop_recording, 0),
         "d": (acq_download, 0),
     },
-    "T": (acq_transmitir, 1),
-    "U": (acq_leer_digital, 0),
+    "L": {
+        "s": (acq_transmitir, 1),
+        "p": (acq_stop_transmitir, 0),
+        "u": (acq_leer_digital, 0),
+    }
 }
