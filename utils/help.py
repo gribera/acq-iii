@@ -26,7 +26,8 @@ async def show_help(transport):
         "ESC W d\t\t\t\tDesconecta de la red WiFi\r\n"
         "--- ACQ ---\r\n"
         "ESC E\t\t\t\tSetea modo de trabajo\r\n"
-        "ESC A\t\t\t\tSetea cantidad de canales analógicos\r\n"
+        "ESC A\t\t\t\tSetea cantidad de canales analógicos (1-8)\r\n"
+        "ESC B\t\t\t\tSetea cantidad de canales InAmp (1-4)\r\n"
         "ESC L s [tiempo]\t\tTransmite lectura de canales analógicos\r\n"
         "ESC L p\t\t\t\tDetiene transmisión de canales analógicos\r\n"
         "ESC L u\t\t\t\tTransmite lectura de canales digitales\r\n"
@@ -52,5 +53,6 @@ async def show_version(transport):
       f"Fecha: {FECHA}\r\n"
       f"Modo: {acq.modo}\r\n"
       f"Canales analógicos: {acq.cant_analog1}\r\n"
+      f"Canales InAmp: {acq.cant_analog2}\r\n"
     )
     transport.write(text.encode("utf-8"))
