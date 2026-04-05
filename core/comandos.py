@@ -97,6 +97,14 @@ async def acq_set_canales(cmd, transport, n):
     except ValueError as e:
         transport.write(f"[ACQ] Error: {e}\r\n".encode())
 
+async def acq_set_canales2(cmd, transport, n):
+    acq = get_acq()
+    try:
+        acq.set_cant_analog2(int(n))
+        transport.write(f"[ACQ] Canales InAmp activos: {n}\r\n".encode())
+    except ValueError as e:
+        transport.write(f"[ACQ] Error: {e}\r\n".encode())
+
 async def acq_transmitir(cmd, transport, interval):
     acq = get_acq()
     try:
@@ -128,6 +136,7 @@ COMANDOS = {
     },
     "E": (acq_set_modo, 1),
     "A": (acq_set_canales, 1),
+    "B": (acq_set_canales2, 1),
     "R": {
         "s": (acq_start_recording, 1),
         "p": (acq_stop_recording, 0),

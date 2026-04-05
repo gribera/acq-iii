@@ -2,7 +2,7 @@ import asyncio
 import analogio
 import digitalio
 
-from pins import AI, DI
+from pins import AI, AI_INAMP, DI
 from core.memory import MemoryService
 from core.rtc import RTCService
 from config import (MEMORIAS,
@@ -18,7 +18,9 @@ from config import (MEMORIAS,
                     CODIGO_REGISTRO,
                     CODIGO_DESCARGA,
                     MODO_ACQ1_ONLINE,
-                    MODO_ACQ1_REGISTRO)
+                    MODO_ACQ1_REGISTRO,
+                    MODO_ACQ2_ONLINE,
+                    RTC_ADDR_CANT_ANALOG2)
 
 _instance = None
 
@@ -28,6 +30,7 @@ class ACQService:
         mem = MemoryService()
         self._modo         = mem.read_byte(MEMORIAS["RTC"], RTC_ADDR_MODO)
         self._cant_analog1 = mem.read_byte(MEMORIAS["RTC"], RTC_ADDR_CANT_ANALOG1)
+        self._cant_analog2 = mem.read_byte(MEMORIAS["RTC"], RTC_ADDR_CANT_ANALOG2)
         self._reg_flag     = mem.read_byte(MEMORIAS["RTC"], RTC_ADDR_REG_FLAG)
         self._pumem        = self._load_pumem(mem)
         self._tiempo_reg   = self._load_tiempo_reg(mem)
@@ -40,13 +43,17 @@ class ACQService:
             self._modo = 1
         if self._cant_analog1 < 1 or self._cant_analog1 > 8:
             self._cant_analog1 = 8
+        if self._cant_analog2 < 1 or self._cant_analog2 > 4:
+            self._cant_analog2 = 4
         if self._reg_flag > 1:
             self._reg_flag = 0
 
         self._mem_full = self._pumem >= MEM_FIN_REG
         self._task = None
 
-        self._ai = [analogio.AnalogIn(pin) for pin in AI] # Prepara los canales como entradas analógicas
+        # Prepara los pines como entradas analógicas
+        self._ai  = [analogio.AnalogIn(pin) for pin in AI]
+        self._ai2 = [analogio.AnalogIn(pin) for pin in AI_INAMP]
 
         self._di = []
         for pin in DI:
@@ -61,6 +68,10 @@ class ACQService:
     @property
     def cant_analog1(self):
         return self._cant_analog1
+
+    @property
+    def cant_analog2(self):
+        return self._cant_analog2
 
     @property
     def reg_flag(self):
@@ -84,6 +95,14 @@ class ACQService:
         self._cant_analog1 = n
         mem = MemoryService()
         mem.write_byte(MEMORIAS["RTC"], RTC_ADDR_CANT_ANALOG1, n)
+        mem.close()
+
+    def set_cant_analog2(self, n: int):
+        if n < 1 or n > 4:
+            raise ValueError("Cantidad de canales InAmp debe ser entre 1 y 4")
+        self._cant_analog2 = n
+        mem = MemoryService()
+        mem.write_byte(MEMORIAS["RTC"], RTC_ADDR_CANT_ANALOG2, n)
         mem.close()
 
     def read_analog(self):
@@ -112,6 +131,14 @@ class ACQService:
                 byte_val |= (1 << i)
         return byte_val
 
+    def read_analog2(self):
+        """Lee los canales InAmp activos. Devuelve valores 12-bit."""
+        result = []
+        for i in range(self._cant_analog2):
+            raw = self._ai2[i].value
+            result.append(raw >> 4)
+        return result
+
     def transmit_analog(self, transport):
         """
         Envía una muestra de los canales analógicos activos
@@ -123,22 +150,41 @@ class ACQService:
             buf.append(v & 0xFF)
         transport.write(bytes(buf))
 
+    def transmit_analog2(self, transport):
+        """
+        Envía una muestra de los canales InAmp activos.
+        """
+        values = self.read_analog2()
+        buf = bytearray()
+        for v in values:
+            buf.append((v >> 8) & 0xFF)
+            buf.append(v & 0xFF)
+        transport.write(bytes(buf))
+
     def start_transmit(self, transport, interval_us: int):
         """
-        Inicia transmisión temporizada de canales analógicos (Modo 1).
+        Inicia transmisión temporizada de canales analógicos (Modo 1 o Modo 3).
         """
-        if self.modo != MODO_ACQ1_ONLINE:
+        if self._modo not in (MODO_ACQ1_ONLINE, MODO_ACQ2_ONLINE):
             raise ValueError("Modo incorrecto")
         if interval_us < 0 or interval_us > 10_000_000:
             raise ValueError("Intervalo debe ser entre 0 y 10000000 microsegundos")
 
-        t_min = 20_000_000 * self._cant_analog1 // 115200
+        if self._modo == MODO_ACQ2_ONLINE:
+            cant = self._cant_analog2
+        else:
+            cant = self._cant_analog1
+
+        t_min = 20_000_000 * cant // 115200
         if interval_us != 0 and interval_us < t_min:
-            raise ValueError(f"Intervalo mínimo es {t_min} µs para {self._cant_analog1} canales")
+            raise ValueError(f"Intervalo mínimo es {t_min} µs para {cant} canales")
 
         # Si el intervalo es 0, transmite una sola vez
         if interval_us == 0:
-            self.transmit_analog(transport)
+            if self._modo == MODO_ACQ2_ONLINE:
+                self.transmit_analog2(transport)
+            else:
+                self.transmit_analog(transport)
             return
 
         # Si el intervalo es mayor a 0, crea un task
@@ -230,7 +276,10 @@ class ACQService:
 
     async def _transmit_loop(self, transport, interval_us: int):
         while self._transmit:
-            self.transmit_analog(transport)
+            if self._modo == MODO_ACQ2_ONLINE:
+                self.transmit_analog2(transport)
+            else:
+                self.transmit_analog(transport)
             await asyncio.sleep(interval_us / 1_000_000)
 
     async def _recording_loop(self, transport):
@@ -325,6 +374,8 @@ class ACQService:
     def close(self):
         self.stop_recording()
         for pin in self._ai:
+            pin.deinit()
+        for pin in self._ai2:
             pin.deinit()
         for pin in self._di:
             pin.deinit()
