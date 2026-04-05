@@ -20,6 +20,7 @@ from config import (MEMORIAS,
                     MODO_ACQ1_ONLINE,
                     MODO_ACQ1_REGISTRO,
                     MODO_ACQ2_ONLINE,
+                    MODO_ACQ2_REGISTRO,
                     RTC_ADDR_CANT_ANALOG2)
 
 _instance = None
@@ -202,12 +203,12 @@ class ACQService:
 
     def start_recording(self, tiempo_reg: int, transport):
         """
-        Inicia el registro periódico en EEPROM (Modo 2).
+        Inicia el registro periódico en EEPROM (Modo 2 o Modo 4).
 
         Args:
             tiempo_reg: intervalo de registro en segundos (1-3600).
         """
-        if self.modo != MODO_ACQ1_REGISTRO:
+        if self._modo not in (MODO_ACQ1_REGISTRO, MODO_ACQ2_REGISTRO):
             raise ValueError("Modo incorrecto")
         if tiempo_reg < 1 or tiempo_reg > 3600:
             raise ValueError("Intervalo debe ser entre 1 y 3600 segundos")
@@ -327,19 +328,21 @@ class ACQService:
         header += b'\x32\x30'
         header += bytes([0x30 + (year2 // 10), 0x30 + (year2 % 10)])
         header += t_str
-        header += bytes([self._modo, self._cant_analog1, 0, 0x08, CODIGO_REGISTRO])
+        header += bytes([self._modo, self._cant_analog1, self._cant_analog2, 0x08, CODIGO_REGISTRO])
         header += b'\xff\xff'
 
         self._eeprom_write(mem, bytes(header))
 
     def _write_sample(self, mem):
         """
-        1 byte lectura digital digital + N×2 bytes analógicos
+        1 byte digital + N×2 bytes analógicos
+        Modo 2: canales analog1. Modo 4: canales analog2 (InAmp).
         """
         buf = bytearray([self.read_digital()])
-        for v in self.read_analog():
-            buf.append(v & 0xFF)         # LSB
-            buf.append((v >> 8) & 0xFF)  # MSB
+        values = self.read_analog2() if self._modo == MODO_ACQ2_REGISTRO else self.read_analog()
+        for v in values:
+            buf.append(v & 0xFF)
+            buf.append((v >> 8) & 0xFF)
         self._eeprom_write(mem, bytes(buf))
 
     def _eeprom_write(self, mem, data: bytes):
